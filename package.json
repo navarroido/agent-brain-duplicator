@@ -35,12 +35,12 @@
   ],
   "author": "Ido Navarro",
   "license": "MIT",
-  "homepage": "https://github.com/idoNavarro/agent-brain-duplicator#readme",
+  "homepage": "https://github.com/navarroido/agent-brain-duplicator#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/idoNavarro/agent-brain-duplicator.git"
+    "url": "https://github.com/navarroido/agent-brain-duplicator.git"
   },
   "bugs": {
-    "url": "https://github.com/idoNavarro/agent-brain-duplicator/issues"
+    "url": "https://github.com/navarroido/agent-brain-duplicator/issues"
   }
 }

@@ -1,17 +1,44 @@
 # agent-brain-duplicator
 
-Clone a [NanoClaw](https://nanoclaw.com) AI agent's brain — memory, skills, scripts, config, and settings — into a portable `.tar.gz` file. Deploy it to a new agent in minutes.
+Clone a [NanoClaw](https://nanoclaw.com) AI agent's brain — memory, skills, scripts, config, and settings — into a portable `.tar.gz` file. Deploy it to a new agent in minutes, with a beautiful interactive setup wizard.
 
 ```
-╔════════════════════════════════════════════════════════════╗
-║  🧠  agent-brain-duplicator  —  Deploy                     ║
-╚════════════════════════════════════════════════════════════╝
+                                                   0
+                                                  0
+                                                 00  00
+                                                00   0
+                                               00   00
+                              00000000000000 00    0           000
+                           0000           00000   00        000 00 0000
+                         000              00 000000        00  00   0 00
+                       000              000    000        00   00 000 00
+                      000                       000       0  700007   0
+                     000                         000     00000       00
+                    00     000000            00  000     00         00
+                   00     0000  0           0000 0000    00       000
+                  000      000000           000000000   00000   000
+                  00         00   000    00   000  00 000   00000
+                 000              0000000000       0000    000
+                 00                2000000         000   000
+                 00                                00  000
+                 000                              200000
+                  00                             000
+                 00000      000                0000
+                 0000000   00 00       0000000000
+                00   00000000  000   0000       0000
+                 06     00000   000000             000
+                 00        0000000000000            000
+                  00        00         7000       7  00
+                  000000000000            00      2  00
+                   00    006000      20000000        00
+                   60        0007    000            000
+                    0000  000000000    000         00000
+                       000       0000000000       000000000
+                        0000    000            000000    000
+                           00000000000000000000000     60000
+                       00000000000000000000000000000000000
 
-  [1/3]  YouTube API Key
-    console.cloud.google.com → APIs & Services → Credentials
-
-  › Enter value: ████████████████
-  ✓ Saved
+  agent-brain-duplicator  —  Clone NanoClaw agent brains
 ```
 
 ---
@@ -22,10 +49,10 @@ Clone a [NanoClaw](https://nanoclaw.com) AI agent's brain — memory, skills, sc
 |---|---|
 | **Workspace** | Scripts, tools, notes, config files |
 | **Memory** | Claude memory files, CLAUDE.local.md preferences |
-| **Skills** | Custom skill definitions (e.g. `inspiration-report`) |
+| **Skills** | Custom skill definitions |
 | **Settings** | Claude settings, hooks, MCP config |
 
-Secrets (API keys) are **never** included — the tool detects them and either keeps them in a checklist or strips them entirely in `--template` mode.
+Secrets (API keys) are **never** included by default — the tool detects them, lists them in a checklist, or strips them entirely in `--template` mode.
 
 ---
 
@@ -45,9 +72,7 @@ npx agent-brain-duplicator snapshot
 
 ## Usage
 
-### Step 1 — Snapshot (run inside the agent)
-
-Pack the brain into a portable archive:
+### `snapshot` — Pack the brain (run inside the agent)
 
 ```bash
 agent-brain-duplicator snapshot
@@ -61,48 +86,63 @@ Creates `brain-YYYYMMDD-agentname.tar.gz` in the agent's workspace.
 agent-brain-duplicator snapshot --template
 ```
 
-All API key values in `config.js` are replaced with `YOUR_KEY_NAME` placeholders. Safe to publish or share publicly.
+All API key values in `config.js` are replaced with `YOUR_KEY_NAME` placeholders.
 
 ---
 
-### Step 2 — Inspect (optional, run on your Mac)
+### `list` — See all brain archives
 
-See what's inside before deploying:
+```bash
+agent-brain-duplicator list
+agent-brain-duplicator list /path/to/directory
+```
+
+```
+  Brain archives in: /workspace/agent
+
+  ────────────────────────────────────────────────────────────
+  File                                        Size    Date
+  ────────────────────────────────────────────────────────────
+  brain-20260516-nano-template.tar.gz         241M    5/16/2026 [template]
+  brain-20260516-nano.tar.gz                  241M    5/16/2026
+  ────────────────────────────────────────────────────────────
+
+  2 archives found
+```
+
+---
+
+### `inspect` — Peek inside before deploying
 
 ```bash
 agent-brain-duplicator inspect brain-20260516-nano.tar.gz
 ```
 
-Output:
 ```
-╔════════════════════════════════════════════════════════════╗
-║  🧠  Brain Manifest                                        ║
-╚════════════════════════════════════════════════════════════╝
+  Brain Manifest
 
   Agent:    Nano
   Group:    dm-with-ido-navarro
   Created:  5/16/2026, 2:35:52 AM
   Mode:     Template — secrets are placeholders
 
-  Contents:
-    Skills:  inspiration-report, llmagnet-brand
-    Memory:  4 files
-    Scripts: 58 files
+  Contents
+  Skills:  inspiration-report, llmagnet-brand
+  Memory:  4 files
+  Scripts: 58 files
 
-  config.js secrets:
+  config.js secrets
     → YouTube API Key (YOUTUBE_API_KEY)
     → HeyGen API Key (HEYGEN_API_KEY)
 
-  Vault secrets:
+  Vault secrets
     → Buffer API credentials
     → LinkedIn credentials
 ```
 
 ---
 
-### Step 3 — Deploy (run on your Mac)
-
-Unpack the brain into a new NanoClaw agent group:
+### `deploy` — Unpack to a new agent (run on your Mac)
 
 ```bash
 agent-brain-duplicator deploy brain-20260516-nano.tar.gz --group my-new-agent
@@ -112,7 +152,7 @@ The tool:
 1. Auto-detects your NanoClaw installation
 2. Creates the new group directory
 3. Restores workspace, memory, and settings
-4. Launches an **interactive setup wizard** for all secrets
+4. Launches an **interactive setup wizard** — API keys are hidden as you type
 
 ```
 ╔════════════════════════════════════════════════════════════╗
@@ -120,21 +160,21 @@ The tool:
 ╚════════════════════════════════════════════════════════════╝
 
   Configure your new agent's secrets.
-  Press Enter to keep the current value, or type a new one.
+  API keys are hidden as you type. Press Enter to skip.
 
   ────────────────────────────────────────────────────────────
 
   [1/3]  YouTube API Key
     console.cloud.google.com → APIs & Services → Credentials
 
-  › Enter value: _
+  › Enter value (hidden):
   ✓ Saved
 
   [2/3]  HeyGen API Key
     app.heygen.com → Account → API
 
-  › Enter value: _
-  ↷ Skipped — edit config.js later
+  › Enter value (hidden):
+  ↷ Skipped
 
   ────────────────────────────────────────────────────────────
 
@@ -167,11 +207,12 @@ agent-brain-duplicator deploy brain.tar.gz --group my-clone --nanoclaw-root ~/pa
 
 ```
 Inside agent               Your Mac
-─────────────              ─────────────────────────────
+─────────────              ──────────────────────────────────────
 snapshot ──────────────►  brain-DATE-name.tar.gz
-                          inspect (optional peek)
+                          list               (see all archives)
+                          inspect            (peek inside)
                           deploy --group my-clone
-                            └─ wizard prompts for secrets
+                            └─ wizard prompts for secrets (hidden input)
                           NanoClaw: New Agent → my-clone
                           Agent wakes up with full brain ✓
 ```
@@ -196,8 +237,8 @@ agent-brain-duplicator deploy brain-DATE-name-template.tar.gz --group their-agen
 
 - Node.js 18+
 - NanoClaw v2 (for deploy)
-- Runs `snapshot` **inside** a NanoClaw agent container
-- Runs `inspect` and `deploy` **on the host Mac**
+- Run `snapshot` **inside** a NanoClaw agent container
+- Run `inspect`, `list`, and `deploy` **on the host Mac**
 
 ---
 

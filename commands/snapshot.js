@@ -4,18 +4,19 @@ import path from 'path';
 import { detectPaths, readContainerJson } from '../lib/detect.js';
 import { buildManifest } from '../lib/manifest.js';
 import { scrubConfig } from '../lib/config-scrubber.js';
+import { printArt, tq } from '../lib/art.js';
 
 export async function snapshot(chalk, ora, { template = false } = {}) {
-  console.log(chalk.bold('\n🧠 agent-brain-duplicator snapshot\n'));
-  if (template) {
-    console.log(chalk.yellow('  Template mode: secrets will be replaced with placeholders\n'));
-  }
+  printArt(chalk);
+  const t = tq(chalk);
 
-  const spinner = ora('Detecting agent paths...').start();
+  console.log(chalk.bold('  snapshot') + (template ? '  ' + chalk.yellow('[template mode]') : '') + '\n');
+
+  const spinner = ora({ text: 'Detecting agent paths...', color: 'cyan' }).start();
   let paths;
   try {
     paths = detectPaths();
-    spinner.succeed(`Agent: ${chalk.cyan(paths.groupName)}`);
+    spinner.succeed(t('Agent: ') + chalk.bold(paths.groupName));
   } catch (e) {
     spinner.fail(e.message);
     process.exit(1);
@@ -29,7 +30,7 @@ export async function snapshot(chalk, ora, { template = false } = {}) {
   const outputDir = `/workspace/agent/${brainName}`;
   const outputTar = `/workspace/agent/${brainName}.tar.gz`;
 
-  spinner.start('Building brain manifest...');
+  spinner.start('Building manifest...');
   const manifest = buildManifest({
     groupName: paths.groupName,
     agentId: paths.agentId,
@@ -39,9 +40,8 @@ export async function snapshot(chalk, ora, { template = false } = {}) {
 
   mkdirSync(outputDir, { recursive: true });
   writeFileSync(path.join(outputDir, 'brain.json'), JSON.stringify(manifest, null, 2));
-  spinner.succeed('Manifest ready');
+  spinner.succeed(t('Manifest ready'));
 
-  // Pack workspace
   spinner.start('Packing workspace...');
   const excludes = [
     "--exclude='*/node_modules'",
@@ -54,17 +54,13 @@ export async function snapshot(chalk, ora, { template = false } = {}) {
   ].join(' ');
 
   try {
-    execSync(
-      `tar ${excludes} -czf ${outputDir}/workspace.tar.gz -C /workspace agent`,
-      { stdio: 'pipe' }
-    );
-    spinner.succeed('Workspace packed');
+    execSync(`tar ${excludes} -czf ${outputDir}/workspace.tar.gz -C /workspace agent`, { stdio: 'pipe' });
+    spinner.succeed(t('Workspace packed'));
   } catch (e) {
     spinner.fail('Workspace pack failed: ' + e.message);
     process.exit(1);
   }
 
-  // Template mode: scrub secret values from config.js inside the tar
   if (template) {
     const configSecrets = manifest.secretsChecklist.filter(s => s.source === 'config.js');
     if (configSecrets.length > 0) {
@@ -73,25 +69,20 @@ export async function snapshot(chalk, ora, { template = false } = {}) {
       try {
         mkdirSync(scrubDir, { recursive: true });
         execSync(`tar -xzf ${outputDir}/workspace.tar.gz -C ${scrubDir}`, { stdio: 'pipe' });
-
         const configPath = `${scrubDir}/agent/config.js`;
         if (existsSync(configPath)) {
-          const original = readFileSync(configPath, 'utf8');
-          const scrubbed = scrubConfig(original);
-          writeFileSync(configPath, scrubbed);
+          writeFileSync(configPath, scrubConfig(readFileSync(configPath, 'utf8')));
         }
-
         execSync(`tar -czf ${outputDir}/workspace.tar.gz -C ${scrubDir} agent`, { stdio: 'pipe' });
         execSync(`rm -rf ${scrubDir}`, { stdio: 'pipe' });
-        spinner.succeed(`Secrets scrubbed (${configSecrets.length} keys replaced)`);
+        spinner.succeed(t(`Secrets scrubbed`) + chalk.dim(` (${configSecrets.length} keys replaced)`));
       } catch (e) {
         execSync(`rm -rf ${scrubDir}`, { stdio: 'pipe' });
-        spinner.warn('Scrub failed, continuing: ' + e.message);
+        spinner.warn('Scrub failed: ' + e.message);
       }
     }
   }
 
-  // Pack .claude-shared
   spinner.start('Packing memory & settings...');
   try {
     execSync(
@@ -99,33 +90,32 @@ export async function snapshot(chalk, ora, { template = false } = {}) {
        -czf ${outputDir}/claude-shared.tar.gz -C /home/node .claude`,
       { stdio: 'pipe' }
     );
-    spinner.succeed('Memory & settings packed');
+    spinner.succeed(t('Memory & settings packed'));
   } catch (e) {
     spinner.warn('Memory pack failed (continuing): ' + e.message);
   }
 
-  // Bundle everything
-  spinner.start('Creating brain bundle...');
+  spinner.start('Bundling...');
   execSync(`tar -czf ${outputTar} -C /workspace/agent ${brainName}`, { stdio: 'pipe' });
   execSync(`rm -rf ${outputDir}`, { stdio: 'pipe' });
-  spinner.succeed('Brain bundle created');
+  spinner.succeed(t('Brain bundle ready'));
 
   const size = execSync(`du -sh ${outputTar}`).toString().split('\t')[0];
 
-  console.log(chalk.green('\n✅ Snapshot complete!\n'));
-  console.log(`  ${chalk.bold('File:')}   ${outputTar}`);
-  console.log(`  ${chalk.bold('Size:')}   ${size}`);
-  console.log(`  ${chalk.bold('Agent:')}  ${agentName}`);
-  if (template) console.log(`  ${chalk.bold('Mode:')}   ${chalk.yellow('Template')} (secrets replaced with placeholders)`);
-  console.log(`  ${chalk.bold('Skills:')} ${manifest.contents.skills.join(', ') || 'none'}`);
-  console.log(`  ${chalk.bold('Memory:')} ${manifest.contents.memoryFiles.length} files`);
-  console.log(`  ${chalk.bold('Scripts:')} ${manifest.contents.scripts.length} files`);
+  console.log('\n' + chalk.bold.green('  ✅ Snapshot complete!\n'));
+  console.log('  ' + chalk.dim('File:    ') + chalk.bold(outputTar));
+  console.log('  ' + chalk.dim('Size:    ') + size);
+  console.log('  ' + chalk.dim('Agent:   ') + agentName);
+  if (template) console.log('  ' + chalk.dim('Mode:    ') + chalk.yellow('Template') + chalk.dim(' (no real secrets inside)'));
+  console.log('  ' + chalk.dim('Skills:  ') + (manifest.contents.skills.join(', ') || 'none'));
+  console.log('  ' + chalk.dim('Memory:  ') + manifest.contents.memoryFiles.length + ' files');
+  console.log('  ' + chalk.dim('Scripts: ') + manifest.contents.scripts.length + ' files');
 
   if (!template) {
-    console.log(chalk.yellow('\n⚠️  Secrets checklist (add to new agent vault):'));
-    manifest.secretsChecklist.forEach(s => console.log(`  - ${s.label}`));
+    console.log('\n  ' + chalk.yellow('⚠  Secrets to add to new agent vault:'));
+    manifest.secretsChecklist.forEach(s => console.log('     ' + chalk.yellow('→') + ' ' + s.label));
   }
 
-  console.log(chalk.dim(`\nTo inspect: agent-brain-duplicator inspect ${brainName}.tar.gz`));
-  console.log(chalk.dim(`To deploy:  agent-brain-duplicator deploy ${brainName}.tar.gz --group <new-group-name>\n`));
+  console.log('\n  ' + chalk.dim('inspect: ') + t(`agent-brain-duplicator inspect ${brainName}.tar.gz`));
+  console.log('  ' + chalk.dim('deploy:  ') + t(`agent-brain-duplicator deploy ${brainName}.tar.gz --group <name>`) + '\n');
 }

@@ -1,6 +1,6 @@
 {
   "name": "agent-brain-duplicator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Snapshot and clone NanoClaw agent brains — run snapshot inside the agent, deploy on the host",
   "type": "module",
   "bin": {

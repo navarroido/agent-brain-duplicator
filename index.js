@@ -4,31 +4,10 @@ import ora from 'ora';
 import { snapshot } from './commands/snapshot.js';
 import { inspect } from './commands/inspect.js';
 import { deploy } from './commands/deploy.js';
+import { list } from './commands/list.js';
+import { printArt, tq } from './lib/art.js';
 
 const [,, command, ...args] = process.argv;
-
-const HELP = `
-${chalk.bold.cyan('agent-brain-duplicator')} ${chalk.dim('—')} Clone NanoClaw agent brains
-
-${chalk.bold('Commands:')}
-  ${chalk.cyan('snapshot')}                             Run INSIDE the agent — pack the brain
-    ${chalk.dim('--template')}                           Strip secrets → reusable template brain
-  ${chalk.cyan('inspect')}  ${chalk.dim('<brain.tar.gz>')}               Show what's inside before deploying
-  ${chalk.cyan('deploy')}   ${chalk.dim('<brain.tar.gz> --group <name>')} Run on HOST Mac — unpack to new agent
-    ${chalk.dim('--nanoclaw-root <path>')}               NanoClaw root (auto-detected)
-
-${chalk.bold('Typical flow:')}
-  ${chalk.dim('1.')} Inside agent:  ${chalk.cyan('agent-brain-duplicator snapshot')}
-  ${chalk.dim('2.')} On Mac:        ${chalk.cyan('agent-brain-duplicator inspect brain-DATE-name.tar.gz')}
-  ${chalk.dim('3.')} On Mac:        ${chalk.cyan('agent-brain-duplicator deploy brain-DATE-name.tar.gz --group my-clone')}
-  ${chalk.dim('4.')} NanoClaw UI:   New Agent → group: my-clone → the wizard handles the rest
-
-${chalk.bold('Template flow:')} (share with others)
-  ${chalk.dim('1.')} Inside agent:  ${chalk.cyan('agent-brain-duplicator snapshot --template')}
-  ${chalk.dim('2.')} Share the .tar.gz — it has no real secrets inside
-  ${chalk.dim('3.')} Recipient:     ${chalk.cyan('agent-brain-duplicator deploy brain.tar.gz --group their-name')}
-                 ${chalk.dim('→ interactive wizard prompts for their own API keys')}
-`;
 
 function parseArgs(args) {
   const opts = {};
@@ -47,6 +26,31 @@ function parseArgs(args) {
 
 const opts = parseArgs(args);
 
+if (!command) {
+  const t = tq(chalk);
+  printArt(chalk);
+
+  console.log(chalk.bold('  Commands:\n'));
+  console.log('  ' + t('snapshot') + chalk.dim('                              Pack the brain (run inside agent)'));
+  console.log('    ' + chalk.dim('--template') + '                          Strip secrets → safe to share');
+  console.log('  ' + t('inspect') + '  ' + chalk.dim('<brain.tar.gz>') + chalk.dim('               Show contents'));
+  console.log('  ' + t('deploy') + '   ' + chalk.dim('<brain.tar.gz> --group <name>') + chalk.dim('  Deploy to new agent'));
+  console.log('    ' + chalk.dim('--nanoclaw-root <path>') + '             Override NanoClaw path');
+  console.log('  ' + t('list') + chalk.dim('                                 List brain archives here'));
+
+  console.log('\n  ' + chalk.bold('Typical flow:\n'));
+  console.log('  ' + chalk.dim('1.') + ' Inside agent:  ' + t('agent-brain-duplicator snapshot'));
+  console.log('  ' + chalk.dim('2.') + ' On Mac:        ' + t('agent-brain-duplicator inspect brain-DATE-name.tar.gz'));
+  console.log('  ' + chalk.dim('3.') + ' On Mac:        ' + t('agent-brain-duplicator deploy brain-DATE-name.tar.gz --group my-clone'));
+  console.log('  ' + chalk.dim('4.') + ' NanoClaw UI:   New Agent → group: my-clone\n');
+
+  console.log('  ' + chalk.bold('Template (share without secrets):\n'));
+  console.log('  ' + chalk.dim('1.') + ' ' + t('agent-brain-duplicator snapshot --template'));
+  console.log('  ' + chalk.dim('2.') + ' Share the .tar.gz — no real keys inside');
+  console.log('  ' + chalk.dim('3.') + ' Recipient runs deploy → wizard prompts for their own keys\n');
+  process.exit(0);
+}
+
 switch (command) {
   case 'snapshot':
     await snapshot(chalk, ora, { template: !!opts.template });
@@ -57,6 +61,11 @@ switch (command) {
   case 'deploy':
     await deploy(opts._positional?.[0], opts.group, opts.nanoclaRoot, chalk, ora);
     break;
+  case 'list':
+    await list(opts._positional?.[0], chalk);
+    break;
   default:
-    console.log(HELP);
+    console.error(chalk.red(`Unknown command: ${command}`));
+    console.error(chalk.dim('Run agent-brain-duplicator with no arguments to see help.'));
+    process.exit(1);
 }
